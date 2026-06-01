@@ -8300,34 +8300,15 @@ if (_origNavTo) {
     const _ch = new BroadcastChannel('captus-tab');
     let bloqueado = false;
 
-    // ══ MODIFICADO: al detectar instancia activa, redirigir en vez de bloquear ══
+    // ══ MODIFICADO: pantalla mínima — logo + nombre + botón continuar ══
     const _listener = (e) => {
       if (e.data === 'ya-activa' && !bloqueado) {
         bloqueado = true;
-        // Intentar redirigir directo al origen (funciona cuando es PWA standalone)
-        try { window.location.replace(window.location.href); } catch(_) {}
-        // Si no redirigió, mostrar pantalla amigable con botón de recarga
         document.body.innerHTML = `
-          <div style="
-            position:fixed;inset:0;
-            background:#F4F3EE;
-            display:flex;flex-direction:column;
-            align-items:center;justify-content:center;
-            gap:16px;font-family:'Plus Jakarta Sans',sans-serif;
-            text-align:center;padding:24px;
-          ">
-            <div style="font-size:3rem;">⚡</div>
-            <div style="font-weight:800;font-size:1.2rem;color:#18181B;">Captus ya está abierto</div>
-            <div style="font-size:.88rem;color:#52525B;max-width:300px;line-height:1.6;">
-              Ya tenés Captus abierto en otra pestaña del navegador.<br>
-              <span style="color:#71717A;">Cerrá esa pestaña y abrí desde acá.</span>
-            </div>
-            <button onclick="window.location.reload();" style="
-              margin-top:8px;padding:11px 28px;
-              background:#18181B;color:white;
-              border:none;border-radius:100px;
-              font-weight:700;font-size:.95rem;cursor:pointer;
-            ">Abrir Captus</button>
+          <div style="position:fixed;inset:0;background:#F4F3EE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="80" height="80" version="1.1" style="shape-rendering:geometricPrecision;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.12);" viewBox="0 0 20000 20000"><defs><style>.a{fill:#00001F}.b{fill:url(#g);fill-rule:nonzero}</style><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="9859.67" y1="15231.8" x2="9844.03" y2="4768.18"><stop offset="0" style="stop-opacity:1;stop-color:#FFBC14"/><stop offset="1" style="stop-opacity:1;stop-color:#FFD15C"/></linearGradient></defs><g><rect class="a" width="20000" height="20000" rx="5000" ry="5000"/><path class="b" d="M12081 7396c266,203 469,281 703,281 548,0 861,-406 861,-891 0,-235 -78,-454 -423,-782 -547,-501 -1736,-1236 -3378,-1236 -2909,0 -5083,2237 -5083,5240 0,2972 2127,5224 5099,5224 2033,0 3237,-1064 3581,-1423 219,-235 344,-470 344,-798 0,-532 -359,-829 -875,-829 -313,0 -485,125 -720,360 -266,250 -907,922 -2315,922 -2064,0 -3206,-1454 -3206,-3456 0,-2033 1189,-3472 3175,-3472 1079,0 1658,406 2237,860zm-2054 991c730,0 1346,484 1545,1149l2622 0c216,-1087 1175,-1906 2325,-1906 1309,0 2371,1061 2371,2370 0,1309 -1062,2370 -2371,2370 -1150,0 -2109,-819 -2325,-1906l-2622 0c-199,665 -815,1149 -1545,1149 -890,0 -1613,-722 -1613,-1613 0,-891 723,-1613 1613,-1613z"/></g></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" height="24" version="1.1" style="shape-rendering:geometricPrecision;display:inline-block;" viewBox="2150 12400 16000 4200"><defs><style>.c{fill:#00001F;fill-rule:nonzero}</style></defs><g><path class="c" d="M4463 13265c84,64 148,89 222,89 173,0 272,-129 272,-282 0,-74 -25,-143 -134,-247 -173,-158 -548,-391 -1067,-391 -919,0 -1606,707 -1606,1656 0,939 672,1650 1611,1650 642,0 1023,-336 1132,-449 69,-74 108,-148 108,-252 0,-168 -113,-262 -276,-262 -99,0 -154,39 -228,113 -84,80 -286,292 -731,292 -653,0 -1013,-460 -1013,-1092 0,-643 375,-1097 1003,-1097 341,0 524,128 707,272zm2036 2475c385,0 612,-168 736,-331l30 0 0 10c0,163 113,282 281,282 178,0 292,-129 292,-306l0 -1112c0,-682 -554,-1093 -1241,-1093 -766,0 -1294,554 -1294,1305 0,756 538,1245 1196,1245l0 0zm-613 -1275c0,-429 212,-751 711,-751 391,0 658,193 658,608l0 282c0,395 -287,618 -692,618 -430,0 -677,-267 -677,-757zm2436 -182l0 1873c0,178 114,306 292,306 178,0 291,-128 291,-306l0 -742 30 0c119,173 361,326 736,326 648,0 1186,-489 1186,-1245 0,-746 -523,-1305 -1304,-1305 -677,0 -1231,411 -1231,1093zm583 321l0 -282c0,-415 267,-603 658,-603 499,0 711,317 711,746 0,490 -247,757 -677,757 -405,0 -692,-223 -692,-618zm2541 -1834l0 460 -149 0c-173,0 -301,99 -301,267 0,168 128,267 301,267l149 0 0 1003c0,677 365,934 874,934l153 0c168,0 282,-94 282,-272 0,-178 -114,-272 -282,-272l-133 0c-183,0 -316,-103 -316,-395l0 -998 430 0c178,0 301,-99 301,-267 0,-168 -123,-267 -301,-267l-430 0 0 -460c0,-178 -114,-306 -292,-306 -173,0 -286,128 -286,306zm3716 460c-178,0 -292,128 -292,301l0 1236c0,198 -153,440 -588,440 -286,0 -524,-104 -524,-499l0 -1177c0,-173 -113,-301 -291,-301 -178,0 -292,128 -292,301l0 1182c0,726 420,1008 914,1008 376,0 692,-178 761,-302l30 0 0 5c5,153 114,277 282,277 178,0 291,-129 291,-302l0 -1868c0,-173 -113,-301 -291,-301zm1339 642c0,-133 129,-207 341,-207 188,0 361,64 524,203 44,39 99,54 153,54 139,0 247,-109 247,-257 0,-84 -39,-134 -84,-183 -178,-183 -519,-292 -835,-292 -465,0 -894,248 -894,722 0,845 1334,672 1334,1097 0,143 -148,252 -415,252 -282,0 -465,-114 -588,-257 -40,-44 -104,-89 -198,-89 -143,0 -257,114 -257,257 0,79 35,143 94,213 148,168 469,355 929,355 618,0 998,-336 998,-780 0,-855 -1349,-653 -1349,-1088z"/></g></svg>
+            <a href="${window.location.href}" style="padding:14px 48px;background:#18181B;color:white;border:none;border-radius:100px;font-weight:700;font-size:1rem;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);text-decoration:none;display:inline-block;">Continuar</a>
           </div>`;
       }
       if (e.data === 'hay-alguien') {
