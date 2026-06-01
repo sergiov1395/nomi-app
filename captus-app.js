@@ -8300,9 +8300,13 @@ if (_origNavTo) {
     const _ch = new BroadcastChannel('captus-tab');
     let bloqueado = false;
 
+    // ══ MODIFICADO: al detectar instancia activa, redirigir en vez de bloquear ══
     const _listener = (e) => {
       if (e.data === 'ya-activa' && !bloqueado) {
         bloqueado = true;
+        // Intentar redirigir directo al origen (funciona cuando es PWA standalone)
+        try { window.location.replace(window.location.href); } catch(_) {}
+        // Si no redirigió, mostrar pantalla amigable con botón de recarga
         document.body.innerHTML = `
           <div style="
             position:fixed;inset:0;
@@ -8315,20 +8319,22 @@ if (_origNavTo) {
             <div style="font-size:3rem;">⚡</div>
             <div style="font-weight:800;font-size:1.2rem;color:#18181B;">Captus ya está abierto</div>
             <div style="font-size:.88rem;color:#52525B;max-width:300px;line-height:1.6;">
-              Ya tenés Captus abierto en otra pestaña de este navegador.
+              Ya tenés Captus abierto en otra pestaña del navegador.<br>
+              <span style="color:#71717A;">Cerrá esa pestaña y abrí desde acá.</span>
             </div>
-            <button onclick="window.close();" style="
-              margin-top:8px;padding:11px 24px;
+            <button onclick="window.location.reload();" style="
+              margin-top:8px;padding:11px 28px;
               background:#18181B;color:white;
               border:none;border-radius:100px;
-              font-weight:700;font-size:.88rem;cursor:pointer;
-            ">Cerrar esta pestaña</button>
+              font-weight:700;font-size:.95rem;cursor:pointer;
+            ">Abrir Captus</button>
           </div>`;
       }
       if (e.data === 'hay-alguien') {
         _ch.postMessage('ya-activa');
       }
     };
+    // ══ FIN MODIFICADO ══
 
     _ch.addEventListener('message', _listener);
     _ch.postMessage('hay-alguien');
