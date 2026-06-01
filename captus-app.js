@@ -8295,7 +8295,10 @@ if (_origNavTo) {
 // ▼▼▼ ARRANQUE — versión final limpia ▼▼▼
 // ══════════════════════════════════════════════════════
 (() => {
-  // ── AGREGADO: bloquear segunda pestaña con BroadcastChannel ──
+  // ── AGREGADO: bloquear segunda pestaña solo en PC (no en móvil ni PWA) ──
+  const esPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const esMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (esPWA || esMobile) { arrancarApp(); return; }
   try {
     const _ch = new BroadcastChannel('captus-tab');
     let bloqueado = false;
