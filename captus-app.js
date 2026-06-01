@@ -8298,14 +8298,14 @@ if (_origNavTo) {
   // ── AGREGADO: bloquear segunda pestaña solo en PC (no en móvil ni PWA) ──
   const esPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   const esMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  if (esPWA || esMobile) { arrancarApp(); return; }
+  const saltarBloqueo = esPWA || esMobile;
   try {
     const _ch = new BroadcastChannel('captus-tab');
     let bloqueado = false;
 
     // ══ MODIFICADO: pantalla mínima — logo + nombre + botón continuar ══
     const _listener = (e) => {
-      if (e.data === 'ya-activa' && !bloqueado) {
+      if (e.data === 'ya-activa' && !bloqueado && !saltarBloqueo) {
         bloqueado = true;
         document.body.innerHTML = `
           <div style="position:fixed;inset:0;background:#F4F3EE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
@@ -8337,11 +8337,12 @@ if (_origNavTo) {
       _ch.removeEventListener('message', _listener);
       if (bloqueado) return;
       // Nadie respondió → somos la pestaña primaria
-      _ch.onmessage = (e) => {
-        if (e.data === 'hay-alguien') _ch.postMessage('ya-activa');
-        // ── AGREGADO: si otra pestaña pide tomar el control, cerramos el canal ──
-        if (e.data === 'ceder') _ch.close();
-      };
+      if (!saltarBloqueo) {
+        _ch.onmessage = (e) => {
+          if (e.data === 'hay-alguien') _ch.postMessage('ya-activa');
+          if (e.data === 'ceder') _ch.close();
+        };
+      }
       arrancarApp();
     }, 300);
 
