@@ -22,28 +22,50 @@
   --font:'Plus Jakarta Sans', sans-serif;
   --r:12px; --r-sm:8px;
   --shadow:0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+  /* ══ AGREGADO: colores de marca Captus ══ */
+  --brand:#00001F; --brand-2:#0a0a2e;
+  --gold:#FFBC14;  --gold-dark:#e0a200; --gold-l:#fff8e1;
 }
 * { box-sizing:border-box; margin:0; padding:0; }
 html, body { height:100%; font-family:var(--font); background:var(--bg); color:var(--ink); font-size:15px; }
+/* ══ DARK MODE ══ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0F0F12; --surface:#1A1A20; --surface2:#252530;
+    --ink:#F4F4F6; --ink2:#A1A1AA; --ink3:#71717A;
+    --border:#2E2E38; --green:#22C55E; --green-l:#052e16;
+    --red:#F87171; --red-l:#2a0a0a;
+  }
+}
+html.dark {
+  --bg:#0F0F12; --surface:#1A1A20; --surface2:#252530;
+  --ink:#F4F4F6; --ink2:#A1A1AA; --ink3:#71717A;
+  --border:#2E2E38; --green:#22C55E; --green-l:#052e16;
+  --red:#F87171; --red-l:#2a0a0a;
+}
+/* ══ FIN DARK MODE ══ */
 
 /* ── LAYOUT CENTRADO ── */
+/* ══ MODIFICADO: fondo con color de marca ══ */
 .page {
   min-height:100vh;
   display:flex;
   align-items:center;
   justify-content:center;
   padding:24px 16px;
+  background:var(--brand);
 }
 
 /* ── TARJETA PRINCIPAL ── */
+/* ══ MODIFICADO: sombra profunda sobre fondo de marca ══ */
 .card {
   background:var(--surface);
   border-radius:20px;
-  border:1.5px solid var(--border);
+  border:none;
   padding:40px 36px;
   width:100%;
   max-width:440px;
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 40px rgba(0,0,0,.35);
 }
 
 /* ── LOGO / HEADER ── */
@@ -53,12 +75,13 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
   gap:12px;
   margin-bottom:28px;
 }
+/* ══ MODIFICADO: logo-mark con color de marca ══ */
 .logo-mark {
   width:44px; height:44px;
-  background:var(--ink);
+  background:var(--gold);
   border-radius:12px;
   display:flex; align-items:center; justify-content:center;
-  font-weight:800; font-size:1.2rem; color:white;
+  font-weight:800; font-size:1.2rem; color:var(--brand);
   flex-shrink:0;
 }
 .logo-text { font-weight:800; font-size:1.3rem; letter-spacing:-.03em; }
@@ -91,7 +114,8 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
   background:var(--border);
   transition:background .3s;
 }
-.step-dot.active { background:var(--ink); }
+/* ══ MODIFICADO: step activo con dorado de marca ══ */
+.step-dot.active { background:var(--gold); }
 .step-dot.done   { background:var(--green); }
 
 /* ── CAMPOS ── */
@@ -117,9 +141,10 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
   transition:border-color .15s, box-shadow .15s;
   outline:none;
 }
+/* ══ MODIFICADO: focus con color de marca ══ */
 .field input:focus, .field select:focus {
-  border-color:var(--ink);
-  box-shadow:0 0 0 3px rgba(24,24,27,.08);
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(255,188,20,.15);
 }
 .field input.error { border-color:var(--red); }
 .field-hint {
@@ -138,8 +163,9 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
   transition:all .15s; letter-spacing:-.01em; white-space:nowrap;
 }
 .btn:active { transform:scale(.97); }
-.btn-primary { background:var(--ink); color:white; }
-.btn-primary:hover { background:#333; }
+/* ══ MODIFICADO: botón primario con color de marca ══ */
+.btn-primary { background:var(--gold); color:var(--brand); }
+.btn-primary:hover { background:var(--gold-dark); }
 .btn-primary:disabled { opacity:.45; cursor:not-allowed; transform:none; }
 .btn-ghost  { background:var(--surface2); color:var(--ink); }
 .btn-ghost:hover { background:var(--border); }
@@ -231,10 +257,11 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
 
 /* ── SPINNER ── */
 @keyframes spin { to { transform:rotate(360deg); } }
+/* ══ MODIFICADO: spinner con color de marca ══ */
 .spinner {
   width:16px; height:16px;
-  border:2.5px solid rgba(255,255,255,.3);
-  border-top-color:white;
+  border:2.5px solid rgba(0,0,31,.2);
+  border-top-color:var(--brand);
   border-radius:50%;
   animation:spin .7s linear infinite;
   flex-shrink:0;
@@ -258,10 +285,11 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
   background:var(--bg);
 }
 .tipo-opt:hover { border-color:var(--ink3); }
+/* ══ MODIFICADO: tipo-opt seleccionado con color de marca ══ */
 .tipo-opt.selected {
-  border-color:var(--ink);
-  background:var(--surface2);
-  box-shadow:0 0 0 3px rgba(24,24,27,.06);
+  border-color:var(--gold);
+  background:var(--gold-l);
+  box-shadow:0 0 0 3px rgba(255,188,20,.15);
 }
 .tipo-opt .tipo-ico { font-size:1.1rem; flex-shrink:0; }
 
@@ -285,7 +313,8 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
       <!-- ══ MODIFICADO: logo Captus inline SVG ══ -->
 <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="40" height="40" version="1.1" style="shape-rendering:geometricPrecision;flex-shrink:0;" viewBox="0 0 20000 20000" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><style>.fil0r{fill:#00001F}.fil1r{fill:url(#id0r);fill-rule:nonzero}</style><linearGradient id="id0r" gradientUnits="userSpaceOnUse" x1="9859.67" y1="15231.8" x2="9844.03" y2="4768.18"><stop offset="0" style="stop-opacity:1;stop-color:#FFBC14"/><stop offset="1" style="stop-opacity:1;stop-color:#FFD15C"/></linearGradient></defs><g><rect class="fil0r" width="20000" height="20000" rx="5000" ry="5000"/><path class="fil1r" d="M12081 7396c266,203 469,281 703,281 548,0 861,-406 861,-891 0,-235 -78,-454 -423,-782 -547,-501 -1736,-1236 -3378,-1236 -2909,0 -5083,2237 -5083,5240 0,2972 2127,5224 5099,5224 2033,0 3237,-1064 3581,-1423 219,-235 344,-470 344,-798 0,-532 -359,-829 -875,-829 -313,0 -485,125 -720,360 -266,250 -907,922 -2315,922 -2064,0 -3206,-1454 -3206,-3456 0,-2033 1189,-3472 3175,-3472 1079,0 1658,406 2237,860zm-2054 991c730,0 1346,484 1545,1149l2622 0c216,-1087 1175,-1906 2325,-1906 1309,0 2371,1061 2371,2370 0,1309 -1062,2370 -2371,2370 -1150,0 -2109,-819 -2325,-1906l-2622 0c-199,665 -815,1149 -1545,1149 -890,0 -1613,-722 -1613,-1613 0,-891 723,-1613 1613,-1613z"/></g></svg>
 <div>
-  <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" height="22" version="1.1" style="shape-rendering:geometricPrecision;display:block;" viewBox="2150 12400 16000 4200" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><style>.fil0wr{fill:#00001F;fill-rule:nonzero}</style></defs><g><path class="fil0wr" d="M4463 13265c84,64 148,89 222,89 173,0 272,-129 272,-282 0,-74 -25,-143 -134,-247 -173,-158 -548,-391 -1067,-391 -919,0 -1606,707 -1606,1656 0,939 672,1650 1611,1650 642,0 1023,-336 1132,-449 69,-74 108,-148 108,-252 0,-168 -113,-262 -276,-262 -99,0 -154,39 -228,113 -84,80 -286,292 -731,292 -653,0 -1013,-460 -1013,-1092 0,-643 375,-1097 1003,-1097 341,0 524,128 707,272zm2036 2475c385,0 612,-168 736,-331l30 0 0 10c0,163 113,282 281,282 178,0 292,-129 292,-306l0 -1112c0,-682 -554,-1093 -1241,-1093 -766,0 -1294,554 -1294,1305 0,756 538,1245 1196,1245l0 0zm-613 -1275c0,-429 212,-751 711,-751 391,0 658,193 658,608l0 282c0,395 -287,618 -692,618 -430,0 -677,-267 -677,-757zm2436 -182l0 1873c0,178 114,306 292,306 178,0 291,-128 291,-306l0 -742 30 0c119,173 361,326 736,326 648,0 1186,-489 1186,-1245 0,-746 -523,-1305 -1304,-1305 -677,0 -1231,411 -1231,1093zm583 321l0 -282c0,-415 267,-603 658,-603 499,0 711,317 711,746 0,490 -247,757 -677,757 -405,0 -692,-223 -692,-618zm2541 -1834l0 460 -149 0c-173,0 -301,99 -301,267 0,168 128,267 301,267l149 0 0 1003c0,677 365,934 874,934l153 0c168,0 282,-94 282,-272 0,-178 -114,-272 -282,-272l-133 0c-183,0 -316,-103 -316,-395l0 -998 430 0c178,0 301,-99 301,-267 0,-168 -123,-267 -301,-267l-430 0 0 -460c0,-178 -114,-306 -292,-306 -173,0 -286,128 -286,306zm3716 460c-178,0 -292,128 -292,301l0 1236c0,198 -153,440 -588,440 -286,0 -524,-104 -524,-499l0 -1177c0,-173 -113,-301 -291,-301 -178,0 -292,128 -292,301l0 1182c0,726 420,1008 914,1008 376,0 692,-178 761,-302l30 0 0 5c5,153 114,277 282,277 178,0 291,-129 291,-302l0 -1868c0,-173 -113,-301 -291,-301zm1339 642c0,-133 129,-207 341,-207 188,0 361,64 524,203 44,39 99,54 153,54 139,0 247,-109 247,-257 0,-84 -39,-134 -84,-183 -178,-183 -519,-292 -835,-292 -465,0 -894,248 -894,722 0,845 1334,672 1334,1097 0,143 -148,252 -415,252 -282,0 -465,-114 -588,-257 -40,-44 -104,-89 -198,-89 -143,0 -257,114 -257,257 0,79 35,143 94,213 148,168 469,355 929,355 618,0 998,-336 998,-780 0,-855 -1349,-653 -1349,-1088z"/></g></svg>
+  <!-- ══ MODIFICADO: wordmark usa currentColor para adaptarse a light/dark ══ -->
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" height="22" version="1.1" style="shape-rendering:geometricPrecision;display:block;color:var(--ink);" viewBox="2150 12400 16000 4200"><g><path fill="currentColor" d="M4463 13265c84,64 148,89 222,89 173,0 272,-129 272,-282 0,-74 -25,-143 -134,-247 -173,-158 -548,-391 -1067,-391 -919,0 -1606,707 -1606,1656 0,939 672,1650 1611,1650 642,0 1023,-336 1132,-449 69,-74 108,-148 108,-252 0,-168 -113,-262 -276,-262 -99,0 -154,39 -228,113 -84,80 -286,292 -731,292 -653,0 -1013,-460 -1013,-1092 0,-643 375,-1097 1003,-1097 341,0 524,128 707,272zm2036 2475c385,0 612,-168 736,-331l30 0 0 10c0,163 113,282 281,282 178,0 292,-129 292,-306l0 -1112c0,-682 -554,-1093 -1241,-1093 -766,0 -1294,554 -1294,1305 0,756 538,1245 1196,1245l0 0zm-613 -1275c0,-429 212,-751 711,-751 391,0 658,193 658,608l0 282c0,395 -287,618 -692,618 -430,0 -677,-267 -677,-757zm2436 -182l0 1873c0,178 114,306 292,306 178,0 291,-128 291,-306l0 -742 30 0c119,173 361,326 736,326 648,0 1186,-489 1186,-1245 0,-746 -523,-1305 -1304,-1305 -677,0 -1231,411 -1231,1093zm583 321l0 -282c0,-415 267,-603 658,-603 499,0 711,317 711,746 0,490 -247,757 -677,757 -405,0 -692,-223 -692,-618zm2541 -1834l0 460 -149 0c-173,0 -301,99 -301,267 0,168 128,267 301,267l149 0 0 1003c0,677 365,934 874,934l153 0c168,0 282,-94 282,-272 0,-178 -114,-272 -282,-272l-133 0c-183,0 -316,-103 -316,-395l0 -998 430 0c178,0 301,-99 301,-267 0,-168 -123,-267 -301,-267l-430 0 0 -460c0,-178 -114,-306 -292,-306 -173,0 -286,128 -286,306zm3716 460c-178,0 -292,128 -292,301l0 1236c0,198 -153,440 -588,440 -286,0 -524,-104 -524,-499l0 -1177c0,-173 -113,-301 -291,-301 -178,0 -292,128 -292,301l0 1182c0,726 420,1008 914,1008 376,0 692,-178 761,-302l30 0 0 5c5,153 114,277 282,277 178,0 291,-129 291,-302l0 -1868c0,-173 -113,-301 -291,-301zm1339 642c0,-133 129,-207 341,-207 188,0 361,64 524,203 44,39 99,54 153,54 139,0 247,-109 247,-257 0,-84 -39,-134 -84,-183 -178,-183 -519,-292 -835,-292 -465,0 -894,248 -894,722 0,845 1334,672 1334,1097 0,143 -148,252 -415,252 -282,0 -465,-114 -588,-257 -40,-44 -104,-89 -198,-89 -143,0 -257,114 -257,257 0,79 35,143 94,213 148,168 469,355 929,355 618,0 998,-336 998,-780 0,-855 -1349,-653 -1349,-1088z"/></g></svg>
   <div class="logo-sub">Sistema de gestión para tu negocio</div>
 </div>
 <!-- ══ FIN MODIFICADO ══ -->
@@ -302,12 +331,13 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
         Tu negocio ya está registrado en Captus con la <strong>Demo gratuita de 7 días</strong>.
         Revisá tu email para confirmar tu cuenta, después podés iniciar sesión.
       </div>
-      <!-- ══ MODIFICADO: features correctas → todas las funciones por 7 días ══ -->
+      <!-- ══ MODIFICADO: pantalla éxito con puntos fuertes de Captus ══ -->
       <div class="feature-list" style="text-align:left;">
-        <div class="feature-item"><span>✅</span> Todas las funciones habilitadas</div>
-        <div class="feature-item"><span>✅</span> Productos y clientes ilimitados</div>
-        <div class="feature-item"><span>✅</span> Reportes avanzados incluidos</div>
-        <div class="feature-item"><span>⏳</span> Válido por <strong>7 días</strong> desde hoy</div>
+        <div class="feature-item"><span>🛒</span> POS completo con multi-moneda</div>
+        <div class="feature-item"><span>💳</span> Control de créditos y fiado</div>
+        <div class="feature-item"><span>🌐</span> Catálogo público para compartir</div>
+        <div class="feature-item"><span>📊</span> Reportes, gráficos y exportación</div>
+        <div class="feature-item"><span>⏳</span> Válido por <strong>7 días completos</strong> desde hoy</div>
       </div>
       <!-- ══ FIN MODIFICADO ══ -->
       <a href="index.html" class="btn btn-primary btn-full">Ir al inicio de sesión →</a>
@@ -377,17 +407,17 @@ html, body { height:100%; font-family:var(--font); background:var(--bg); color:v
         <div class="section-title">Tu acceso</div>
         <div class="section-sub">Creá el email y contraseña con que vas a ingresar.</div>
 
-        <!-- ══ MODIFICADO: badge Demo + features actualizados ══ -->
-        <div class="plan-badge">🚀 Demo gratuita — 7 días completos</div>
+        <!-- ══ MODIFICADO: features orientadas a puntos fuertes de Captus ══ -->
+        <div class="plan-badge">🎁 Demo gratuita — 7 días, acceso completo</div>
 
         <div class="feature-list">
-          <div class="feature-item"><span>✅</span> Punto de venta completo</div>
-          <div class="feature-item"><span>✅</span> Productos ilimitados</div>
-          <div class="feature-item"><span>✅</span> Clientes ilimitados</div>
-          <div class="feature-item"><span>✅</span> Reportes avanzados</div>
-          <div class="feature-item"><span>✅</span> Catálogo público</div>
-          <div class="feature-item"><span>✅</span> Cuentas corrientes / Fiado</div>
-          <div class="feature-item"><span>✅</span> Todas las funciones por 7 días</div>
+          <div class="feature-item"><span>🛒</span> <strong>POS multi-moneda</strong> — vendé en Gs, USD, ARS y más</div>
+          <div class="feature-item"><span>📊</span> <strong>Reportes útiles</strong> — gráficos, top productos, descarga en Excel y PDF</div>
+          <div class="feature-item"><span>💳</span> <strong>Créditos y fiado</strong> — controlá deudas sin libretas ni papeles</div>
+          <div class="feature-item"><span>🌐</span> <strong>Catálogo público</strong> — vitrina digital con link para compartir</div>
+          <div class="feature-item"><span>📦</span> <strong>Inventario con fotos</strong> — alerta de stock mínimo y costos</div>
+          <div class="feature-item"><span>🖨️</span> <strong>Tickets PDF</strong> — con tu logo, listo para imprimir o enviar por WhatsApp</div>
+          <div class="feature-item"><span>✅</span> Todo esto habilitado durante <strong>7 días completos</strong></div>
         </div>
         <!-- ══ FIN MODIFICADO ══ -->
 

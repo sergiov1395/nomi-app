@@ -20,10 +20,13 @@
     --font: 'Plus Jakarta Sans', sans-serif;
     --r: 12px;
     --shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+    /* ══ AGREGADO: colores de marca Captus ══ */
+    --brand: #00001F;
+    --gold: #FFBC14;
+    --gold-dark: #e0a200;
+    --gold-l: #fff8e1;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   html, body {
     font-family: var(--font);
     background: var(--bg);
@@ -31,10 +34,25 @@
     font-size: 15px;
     line-height: 1.7;
   }
+  /* ══ DARK MODE ══ */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0F0F12; --surface:#1A1A20; --surface2:#252530;
+      --ink:#F4F4F6; --ink2:#A1A1AA; --ink3:#71717A;
+      --border:#2E2E38; --green:#22C55E; --green-l:#052e16;
+    }
+  }
+  html.dark {
+    --bg:#0F0F12; --surface:#1A1A20; --surface2:#252530;
+    --ink:#F4F4F6; --ink2:#A1A1AA; --ink3:#71717A;
+    --border:#2E2E38; --green:#22C55E; --green-l:#052e16;
+  }
+  /* ══ FIN DARK MODE ══ */
 
   /* ── HEADER ── */
+  /* ══ MODIFICADO: header con color de marca ══ */
   .header {
-    background: var(--ink);
+    background: var(--brand);
     color: white;
     padding: 18px 24px;
     display: flex;
@@ -43,10 +61,11 @@
   }
   .logo-mark {
     width: 36px; height: 36px;
-    background: var(--green);
+    background: var(--gold);
     border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-weight: 800; font-size: 1rem; flex-shrink: 0;
+    color: var(--brand);
   }
   .logo-text { font-weight: 800; font-size: 1rem; letter-spacing: -.02em; }
   .logo-sub  { font-size: .68rem; opacity: .45; }
@@ -60,6 +79,7 @@
     transition: background .15s;
   }
   .header-back:hover { background: rgba(255,255,255,.18); }
+  /* ══ FIN MODIFICADO ══ */
 
   /* ── TABS ── */
   .tabs-wrap {
@@ -79,9 +99,10 @@
     transition: color .15s, border-color .15s;
     white-space: nowrap;
   }
+  /* ══ MODIFICADO: tab activo legible, solo el subrayado es de marca ══ */
   .tab.active {
     color: var(--ink);
-    border-bottom-color: var(--ink);
+    border-bottom-color: var(--gold);
   }
   .tab:hover:not(.active) { color: var(--ink2); }
 
@@ -140,9 +161,10 @@
     gap: 8px;
     color: var(--ink);
   }
+  /* ══ MODIFICADO: numeración de artículos con color de marca ══ */
   .art-num {
-    background: var(--ink);
-    color: white;
+    background: var(--brand);
+    color: var(--gold);
     border-radius: 6px;
     width: 24px; height: 24px;
     display: flex; align-items: center; justify-content: center;
@@ -175,13 +197,15 @@
     color: var(--ink3);
   }
 
+  /* ══ MODIFICADO: highlight-box con color de marca ══ */
   .highlight-box {
-    background: var(--green-l);
+    background: var(--gold-l);
+    border-left: 3px solid var(--gold);
     border-radius: var(--r);
     padding: 14px 18px;
     margin: 12px 0;
     font-size: .87rem;
-    color: #166534;
+    color: var(--ink2);
     font-weight: 500;
   }
 

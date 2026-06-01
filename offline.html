@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sin conexión — Captus</title>
+<link rel="icon" href="icon-192.png" type="image/png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #00001F;
+    color: white;
+  }
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+    gap: 0;
+  }
+  /* Logo */
+  .logo {
+    margin-bottom: 32px;
+  }
+  .logo svg {
+    filter: drop-shadow(0 4px 20px rgba(255,188,20,.2));
+  }
+  /* Ícono de estado */
+  .status-icon {
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.06);
+    border: 1.5px solid rgba(255,255,255,.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto 28px;
+  }
+  /* Textos */
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -.03em;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  h1 span { color: #FFBC14; }
+  p {
+    font-size: .92rem;
+    color: rgba(255,255,255,.5);
+    line-height: 1.7;
+    max-width: 320px;
+    margin: 0 auto 32px;
+  }
+  /* Botón reintentar */
+  .btn-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFBC14;
+    color: #00001F;
+    border: none;
+    border-radius: 100px;
+    padding: 12px 28px;
+    font-family: inherit;
+    font-size: .9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    letter-spacing: -.01em;
+    margin-bottom: 16px;
+  }
+  .btn-retry:hover { background: #e0a200; }
+  .btn-retry:active { transform: scale(.97); }
+  .btn-retry.loading { opacity: .6; pointer-events: none; }
+  /* Spinner inline */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2.5px solid rgba(0,0,31,.2);
+    border-top-color: #00001F;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: none;
+  }
+  .btn-retry.loading .spinner { display: block; }
+  .btn-retry.loading .btn-icon { display: none; }
+  /* Hint */
+  .hint {
+    font-size: .78rem;
+    color: rgba(255,255,255,.25);
+    margin-top: 4px;
+  }
+  /* Separador */
+  .sep {
+    width: 40px; height: 2px;
+    background: rgba(255,188,20,.3);
+    border-radius: 100px;
+    margin: 36px auto 28px;
+  }
+  /* Tips */
+  .tips {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 300px;
+    text-align: left;
+  }
+  .tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: .82rem;
+    color: rgba(255,255,255,.35);
+    line-height: 1.5;
+  }
+  .tip-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,188,20,.4);
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+  /* Footer firma */
+  .firma {
+    position: fixed;
+    bottom: 20px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: .7rem;
+    color: rgba(255,255,255,.15);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Logo Captus -->
+  <div class="logo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 20000 20000">
+      <defs>
+        <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="9859" y1="15231" x2="9844" y2="4768">
+          <stop offset="0" stop-color="#FFBC14"/>
+          <stop offset="1" stop-color="#FFD15C"/>
+        </linearGradient>
+      </defs>
+      <rect width="20000" height="20000" rx="5000" ry="5000" fill="#00001F"/>
+      <path fill="url(#g)" d="M12081 7396c266,203 469,281 703,281 548,0 861,-406 861,-891 0,-235 -78,-454 -423,-782 -547,-501 -1736,-1236 -3378,-1236 -2909,0 -5083,2237 -5083,5240 0,2972 2127,5224 5099,5224 2033,0 3237,-1064 3581,-1423 219,-235 344,-470 344,-798 0,-532 -359,-829 -875,-829 -313,0 -485,125 -720,360 -266,250 -907,922 -2315,922 -2064,0 -3206,-1454 -3206,-3456 0,-2033 1189,-3472 3175,-3472 1079,0 1658,406 2237,860zm-2054 991c730,0 1346,484 1545,1149l2622 0c216,-1087 1175,-1906 2325,-1906 1309,0 2371,1061 2371,2370 0,1309 -1062,2370 -2371,2370 -1150,0 -2109,-819 -2325,-1906l-2622 0c-199,665 -815,1149 -1545,1149 -890,0 -1613,-722 -1613,-1613 0,-891 723,-1613 1613,-1613z"/>
+    </svg>
+  </div>
+
+  <!-- Ícono de estado -->
+  <div class="status-icon">📡</div>
+
+  <!-- Mensaje principal -->
+  <h1>Sin <span>conexión</span></h1>
+  <p>Captus necesita internet para acceder a tus datos. Revisá tu conexión y volvé a intentar.</p>
+
+  <!-- Botón reintentar -->
+  <button class="btn-retry" id="btn-retry" onclick="reintentar()">
+    <span class="btn-icon">↺</span>
+    <span class="spinner"></span>
+    Reintentar
+  </button>
+  <div class="hint" id="hint-texto">Tus datos están seguros en la nube</div>
+
+  <!-- Separador + tips -->
+  <div class="sep"></div>
+  <div class="tips">
+    <div class="tip"><div class="tip-dot"></div><span>Verificá que tenés WiFi o datos móviles activos</span></div>
+    <div class="tip"><div class="tip-dot"></div><span>Si el problema persiste, reiniciá el router o esperá unos minutos</span></div>
+    <div class="tip"><div class="tip-dot"></div><span>Tus ventas y datos no se pierden — siguen en Captus cuando vuelvas</span></div>
+  </div>
+
+</div>
+
+<!-- Firma -->
+<div class="firma">Captus</div>
+
+<script>
+  // Reintentar con feedback visual
+  function reintentar() {
+    const btn = document.getElementById('btn-retry');
+    const hint = document.getElementById('hint-texto');
+    btn.classList.add('loading');
+    hint.textContent = 'Verificando conexión…';
+
+    // Si hay conexión, redirigir a la app
+    setTimeout(() => {
+      if (navigator.onLine) {
+        window.location.href = '/index.html';
+      } else {
+        btn.classList.remove('loading');
+        hint.textContent = 'Todavía sin conexión. Intentá de nuevo.';
+        setTimeout(() => { hint.textContent = 'Tus datos están seguros en la nube'; }, 3000);
+      }
+    }, 1200);
+  }
+
+  // Si recupera conexión automáticamente, redirigir
+  window.addEventListener('online', () => {
+    document.getElementById('hint-texto').textContent = '¡Conexión restaurada! Redirigiendo…';
+    setTimeout(() => { window.location.href = '/index.html'; }, 800);
+  });
+</script>
+</body>
+</html>

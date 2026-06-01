@@ -11,6 +11,9 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // ── OPTIMIZACIÓN: deshabilitar Navigator Lock para evitar bloqueos entre pestañas ──
+    // El BroadcastChannel ya controla que solo haya una instancia activa en PC
+    lock: async (name, acquireTimeout, fn) => fn(),
   }
 });
 
@@ -307,19 +310,18 @@ async function renderPantallaPlan() {
       'interno': 'var(--purple-l)',
     }[planId] || 'var(--surface2)';
 
+    // ══ MODIFICADO: keys limitadas eliminadas, solo planes reales de Captus ══
     const featureLabels = {
-      'pos':                   '🛒 Punto de venta',
-      'productos_50':          '📦 Hasta 50 productos',
-      'productos_ilimitados':  '📦 Productos ilimitados',
-      'clientes_20':           '👥 Hasta 20 clientes',
-      'clientes_ilimitados':   '👥 Clientes ilimitados',
-      'reportes_basicos':      '📊 Reportes básicos',
-      'reportes_avanzados':    '📈 Reportes avanzados',
-      'catalogo':              '🌐 Catálogo público',
-      'cuenta_corriente':      '💳 Cuentas corrientes',
-      'calculadora_impresion': '🧮 Presupuestador',
-      'admin_panel':           '⚙️ Panel de administración',
+      'pos':                   '🛒 POS multi-moneda (Gs, USD, ARS…)',
+      'productos_ilimitados':  '📦 Productos ilimitados con fotos',
+      'clientes_ilimitados':   '👥 Clientes ilimitados con historial',
+      'reportes_avanzados':    '📈 Reportes avanzados + Excel/PDF',
+      'catalogo':              '🌐 Catálogo público con link propio',
+      'cuenta_corriente':      '💳 Créditos y fiado sin papeles',
+      'calculadora_impresion': '🧮 Presupuestador de impresión',
+      'admin_panel':           '⚙️ Panel de administración total',
     };
+    // ══ FIN MODIFICADO ══
 
     // CAMBIADO: nombre visible del plan — "gratis" → "Demo"
     const planLabel = planId === 'gratis' ? 'Demo' : planNombre;
@@ -514,15 +516,23 @@ async function initApp(){
     if (!session?.user) throw new Error('Sin sesión activa');
     const user = session.user;
 
-    const { data: unData, error: unError } = await sb
-      .from('usuarios_negocios')
-      .select('negocio_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (unError) throw new Error('usuarios_negocios: ' + unError.message);
-    if (!unData) throw new Error('Este usuario no tiene negocio asignado');
-    negocioId = unData.negocio_id;
+    // ── OPTIMIZACIÓN: leer negocioId del caché local para evitar una vuelta de red ──
+    const _cacheKey = 'captus_nid_' + user.id;
+    const _cached = localStorage.getItem(_cacheKey);
+    if (_cached) {
+      negocioId = _cached;
+    } else {
+      const { data: unData, error: unError } = await sb
+        .from('usuarios_negocios')
+        .select('negocio_id')
+        .eq('user_id', user.id)
+        .single();
+      if (unError) throw new Error('usuarios_negocios: ' + unError.message);
+      if (!unData) throw new Error('Este usuario no tiene negocio asignado');
+      negocioId = unData.negocio_id;
+      localStorage.setItem(_cacheKey, negocioId);
+    }
+    // ── FIN OPTIMIZACIÓN ──
     
 
     // ── MODIFICADO SEGURIDAD: cargar plan desde función backend (no confiar en frontend) ──
@@ -568,7 +578,9 @@ const [
       // ── AGREGADO: cargar cuentas corrientes ──
       {data: cuentasCorrientes},
       // ══ AGREGADO: datos del negocio (nombre y tipo elegidos al registrarse) ══
-      {data: negocioData}
+      {data: negocioData},
+      // ── OPTIMIZACIÓN: pagos_cc unido al Promise.all ──
+      {data: pCC, error: pCCError}
     ] = await Promise.all([
       // ── MODIFICADO ETAPA 2: todos los SELECT filtran por negocio_id ──
       sb.from('productos').select('*').eq('negocio_id', negocioId).order('id'),
@@ -582,22 +594,19 @@ const [
       sb.from('cuentas_corrientes').select('*').eq('negocio_id', negocioId).order('fecha', {ascending: false}),
       // ── FIN MODIFICADO ETAPA 2 ──
       // ══ MODIFICADO: pedir nombre Y tipo desde tabla negocios ══
-      sb.from('negocios').select('nombre, tipo').eq('id', negocioId).single()
+      sb.from('negocios').select('nombre, tipo').eq('id', negocioId).single(),
       // ══ FIN MODIFICADO ══
+      // ── OPTIMIZACIÓN: pagos_cc dentro del Promise.all para evitar vuelta de red extra ──
+      sb.from('pagos_cc').select('*').eq('negocio_id', negocioId).order('fecha', {ascending: false})
     ]);
 
-    // ── AGREGADO: cargar pagos_cc con manejo correcto de error Supabase ──
+    // ── OPTIMIZACIÓN: pagosCC viene del Promise.all, solo procesamos el resultado ──
     let pagosCC = [];
-    const { data: pCC, error: pCCError } = await sb.from('pagos_cc')
-      .select('*')
-      .eq('negocio_id', negocioId)
-      .order('fecha', { ascending: false });
     if (pCCError) {
       console.warn('pagos_cc error:', pCCError.message);
     } else {
       pagosCC = pCC || [];
     }
-    // ── FIN AGREGADO ──
     
 
 // Poblar caché local
@@ -2601,7 +2610,11 @@ function renderInicio(){
   const cfg = DB.config;
   document.getElementById('sb-biz-name').textContent = cfg.nombre || 'Mi Negocio';
   document.getElementById('sb-biz-type').textContent = cfg.tipo || 'Negocio';
-  document.getElementById('home-sub').textContent = cfg.nombre || 'Mi Negocio';
+  // ══ MODIFICADO: home-sub ahora tiene un span interno para el nombre ══
+  const homeSubText = document.getElementById('home-sub-text');
+  if(homeSubText) homeSubText.textContent = cfg.nombre || 'Mi Negocio';
+  else document.getElementById('home-sub').textContent = cfg.nombre || 'Mi Negocio';
+  // ══ FIN MODIFICADO ══
   const sbImg = document.getElementById('sb-logo-img');
   const sbIni = document.getElementById('sb-logo-inicial');
   if(cfg.logoDataUrl){
@@ -2636,41 +2649,44 @@ function renderInicio(){
   // ── FIN CORREGIDO Bug 2 ──
     if(sinActividad){
       // USUARIO NUEVO: panel de bienvenida con pasos guiados
+      // ══ MODIFICADO: banner con colores de marca Captus ══
       kpisWrap.innerHTML = `
-        <div style="background:linear-gradient(135deg,var(--green-l) 0%,var(--blue-l) 100%);
-          border:1.5px solid var(--border);border-radius:var(--r);padding:22px 24px;">
-          <div style="font-size:1.4rem;margin-bottom:6px;">🎉</div>
-          <div style="font-weight:800;font-size:1.05rem;margin-bottom:4px;">¡Bienvenido a Captus!</div>
-          <div style="font-size:.85rem;color:var(--ink2);margin-bottom:16px;line-height:1.6;">
-            Tu negocio está listo para arrancar. Seguí estos pasos para empezar:
+        <div style="background:var(--brand);border-radius:var(--r);padding:22px 24px;margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 20000 20000' style='flex-shrink:0;border-radius:8px;'><defs><linearGradient id='cgw' gradientUnits='userSpaceOnUse' x1='9859' y1='15231' x2='9844' y2='4768'><stop offset='0' stop-color='#FFBC14'/><stop offset='1' stop-color='#FFD15C'/></linearGradient></defs><rect width='20000' height='20000' rx='5000' ry='5000' fill='#00001F'/><path fill='url(#cgw)' d='M12081 7396c266,203 469,281 703,281 548,0 861,-406 861,-891 0,-235 -78,-454 -423,-782 -547,-501 -1736,-1236 -3378,-1236 -2909,0 -5083,2237 -5083,5240 0,2972 2127,5224 5099,5224 2033,0 3237,-1064 3581,-1423 219,-235 344,-470 344,-798 0,-532 -359,-829 -875,-829 -313,0 -485,125 -720,360 -266,250 -907,922 -2315,922 -2064,0 -3206,-1454 -3206,-3456 0,-2033 1189,-3472 3175,-3472 1079,0 1658,406 2237,860zm-2054 991c730,0 1346,484 1545,1149l2622 0c216,-1087 1175,-1906 2325,-1906 1309,0 2371,1061 2371,2370 0,1309 -1062,2370 -2371,2370 -1150,0 -2109,-819 -2325,-1906l-2622 0c-199,665 -815,1149 -1545,1149 -890,0 -1613,-722 -1613,-1613 0,-891 723,-1613 1613,-1613z'/></svg>
+            <div>
+              <div style="font-weight:800;font-size:1.05rem;color:white;">¡Bienvenido a Captus!</div>
+              <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-top:2px;">Tu negocio está listo para arrancar</div>
+            </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <div onclick="navTo('productos')" style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1.5px solid var(--border);transition:box-shadow .15s;" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+            <div onclick="navTo('productos')" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.07);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1px solid rgba(255,255,255,.1);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
               <span style="font-size:1.2rem;width:28px;text-align:center;">📦</span>
               <div style="flex:1;">
-                <div style="font-weight:700;font-size:.88rem;">Cargá tus productos o servicios</div>
-                <div style="font-size:.75rem;color:var(--ink3);">Así podés vender desde el punto de venta</div>
+                <div style="font-weight:700;font-size:.88rem;color:white;">Cargá tus productos o servicios</div>
+                <div style="font-size:.75rem;color:rgba(255,255,255,.45);">Así podés vender desde el punto de venta</div>
               </div>
-              <span style="color:var(--ink3);font-size:.85rem;">→</span>
+              <span style="color:var(--gold);font-size:.85rem;">→</span>
             </div>
-            <div onclick="navTo('pos')" style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1.5px solid var(--border);transition:box-shadow .15s;" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+            <div onclick="navTo('pos')" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.07);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1px solid rgba(255,255,255,.1);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
               <span style="font-size:1.2rem;width:28px;text-align:center;">🛒</span>
               <div style="flex:1;">
-                <div style="font-weight:700;font-size:.88rem;">Registrá tu primera venta</div>
-                <div style="font-size:.75rem;color:var(--ink3);">Abrí el punto de venta y empezá a cobrar</div>
+                <div style="font-weight:700;font-size:.88rem;color:white;">Registrá tu primera venta</div>
+                <div style="font-size:.75rem;color:rgba(255,255,255,.45);">Abrí el punto de venta y empezá a cobrar</div>
               </div>
-              <span style="color:var(--ink3);font-size:.85rem;">→</span>
+              <span style="color:var(--gold);font-size:.85rem;">→</span>
             </div>
-            <div onclick="navTo('config')" style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1.5px solid var(--border);transition:box-shadow .15s;" onmouseover="this.style.boxShadow='var(--shadow)'" onmouseout="this.style.boxShadow='none'">
+            <div onclick="navTo('config')" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.07);border-radius:var(--r-sm);padding:11px 14px;cursor:pointer;border:1px solid rgba(255,255,255,.1);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">
               <span style="font-size:1.2rem;width:28px;text-align:center;">⚙️</span>
               <div style="flex:1;">
-                <div style="font-weight:700;font-size:.88rem;">Configurá tu negocio</div>
-                <div style="font-size:.75rem;color:var(--ink3);">Nombre, moneda, logo y preferencias</div>
+                <div style="font-weight:700;font-size:.88rem;color:white;">Configurá tu negocio</div>
+                <div style="font-size:.75rem;color:rgba(255,255,255,.45);">Nombre, moneda, logo y preferencias</div>
               </div>
-              <span style="color:var(--ink3);font-size:.85rem;">→</span>
+              <span style="color:var(--gold);font-size:.85rem;">→</span>
             </div>
           </div>
         </div>`;
+      // ══ FIN MODIFICADO ══
     } else {
       // USUARIO CON DATOS: KPIs del día normales
       // ── CORREGIDO Bug 3: caja real = ventas cobradas (no fiadas) + pagos CC - gastos ──
@@ -8295,60 +8311,96 @@ if (_origNavTo) {
 // ▼▼▼ ARRANQUE — versión final limpia ▼▼▼
 // ══════════════════════════════════════════════════════
 (() => {
-  // ── AGREGADO: bloquear segunda pestaña solo en PC (no en móvil ni PWA) ──
+  // ══ ARRANQUE: bloqueo tipo WhatsApp Web — solo en PC de escritorio ══
   const esPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   const esMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const saltarBloqueo = esPWA || esMobile;
-  try {
-    const _ch = new BroadcastChannel('captus-tab');
-    let bloqueado = false;
 
-    // ══ MODIFICADO: pantalla mínima — logo + nombre + botón continuar ══
-    const _listener = (e) => {
-      if (e.data === 'ya-activa' && !bloqueado && !saltarBloqueo) {
-        bloqueado = true;
-        document.body.innerHTML = `
-          <div style="position:fixed;inset:0;background:#F4F3EE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
-            <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="80" height="80" version="1.1" style="shape-rendering:geometricPrecision;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.12);" viewBox="0 0 20000 20000"><defs><style>.a{fill:#00001F}.b{fill:url(#g);fill-rule:nonzero}</style><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="9859.67" y1="15231.8" x2="9844.03" y2="4768.18"><stop offset="0" style="stop-opacity:1;stop-color:#FFBC14"/><stop offset="1" style="stop-opacity:1;stop-color:#FFD15C"/></linearGradient></defs><g><rect class="a" width="20000" height="20000" rx="5000" ry="5000"/><path class="b" d="M12081 7396c266,203 469,281 703,281 548,0 861,-406 861,-891 0,-235 -78,-454 -423,-782 -547,-501 -1736,-1236 -3378,-1236 -2909,0 -5083,2237 -5083,5240 0,2972 2127,5224 5099,5224 2033,0 3237,-1064 3581,-1423 219,-235 344,-470 344,-798 0,-532 -359,-829 -875,-829 -313,0 -485,125 -720,360 -266,250 -907,922 -2315,922 -2064,0 -3206,-1454 -3206,-3456 0,-2033 1189,-3472 3175,-3472 1079,0 1658,406 2237,860zm-2054 991c730,0 1346,484 1545,1149l2622 0c216,-1087 1175,-1906 2325,-1906 1309,0 2371,1061 2371,2370 0,1309 -1062,2370 -2371,2370 -1150,0 -2109,-819 -2325,-1906l-2622 0c-199,665 -815,1149 -1545,1149 -890,0 -1613,-722 -1613,-1613 0,-891 723,-1613 1613,-1613z"/></g></svg>
-            <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" height="24" version="1.1" style="shape-rendering:geometricPrecision;display:inline-block;" viewBox="2150 12400 16000 4200"><defs><style>.c{fill:#00001F;fill-rule:nonzero}</style></defs><g><path class="c" d="M4463 13265c84,64 148,89 222,89 173,0 272,-129 272,-282 0,-74 -25,-143 -134,-247 -173,-158 -548,-391 -1067,-391 -919,0 -1606,707 -1606,1656 0,939 672,1650 1611,1650 642,0 1023,-336 1132,-449 69,-74 108,-148 108,-252 0,-168 -113,-262 -276,-262 -99,0 -154,39 -228,113 -84,80 -286,292 -731,292 -653,0 -1013,-460 -1013,-1092 0,-643 375,-1097 1003,-1097 341,0 524,128 707,272zm2036 2475c385,0 612,-168 736,-331l30 0 0 10c0,163 113,282 281,282 178,0 292,-129 292,-306l0 -1112c0,-682 -554,-1093 -1241,-1093 -766,0 -1294,554 -1294,1305 0,756 538,1245 1196,1245l0 0zm-613 -1275c0,-429 212,-751 711,-751 391,0 658,193 658,608l0 282c0,395 -287,618 -692,618 -430,0 -677,-267 -677,-757zm2436 -182l0 1873c0,178 114,306 292,306 178,0 291,-128 291,-306l0 -742 30 0c119,173 361,326 736,326 648,0 1186,-489 1186,-1245 0,-746 -523,-1305 -1304,-1305 -677,0 -1231,411 -1231,1093zm583 321l0 -282c0,-415 267,-603 658,-603 499,0 711,317 711,746 0,490 -247,757 -677,757 -405,0 -692,-223 -692,-618zm2541 -1834l0 460 -149 0c-173,0 -301,99 -301,267 0,168 128,267 301,267l149 0 0 1003c0,677 365,934 874,934l153 0c168,0 282,-94 282,-272 0,-178 -114,-272 -282,-272l-133 0c-183,0 -316,-103 -316,-395l0 -998 430 0c178,0 301,-99 301,-267 0,-168 -123,-267 -301,-267l-430 0 0 -460c0,-178 -114,-306 -292,-306 -173,0 -286,128 -286,306zm3716 460c-178,0 -292,128 -292,301l0 1236c0,198 -153,440 -588,440 -286,0 -524,-104 -524,-499l0 -1177c0,-173 -113,-301 -291,-301 -178,0 -292,128 -292,301l0 1182c0,726 420,1008 914,1008 376,0 692,-178 761,-302l30 0 0 5c5,153 114,277 282,277 178,0 291,-129 291,-302l0 -1868c0,-173 -113,-301 -291,-301zm1339 642c0,-133 129,-207 341,-207 188,0 361,64 524,203 44,39 99,54 153,54 139,0 247,-109 247,-257 0,-84 -39,-134 -84,-183 -178,-183 -519,-292 -835,-292 -465,0 -894,248 -894,722 0,845 1334,672 1334,1097 0,143 -148,252 -415,252 -282,0 -465,-114 -588,-257 -40,-44 -104,-89 -198,-89 -143,0 -257,114 -257,257 0,79 35,143 94,213 148,168 469,355 929,355 618,0 998,-336 998,-780 0,-855 -1349,-653 -1349,-1088z"/></g></svg>
-            <button id="_captus_continuar" style="padding:14px 48px;background:#18181B;color:white;border:none;border-radius:100px;font-weight:700;font-size:1rem;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);">Continuar</button>
-          </div>`;
-        // ── Al continuar: notificar a la pestaña original que ceda, luego recargar ──
-        document.getElementById('_captus_continuar').addEventListener('click', function() {
-          _ch.postMessage('ceder');
-          _ch.close(); // cerramos este canal antes de recargar
-          setTimeout(() => window.location.reload(), 300);
-        });
-      }
-      if (e.data === 'hay-alguien') {
-        _ch.postMessage('ya-activa');
-      }
-      if (e.data === 'ceder') {
-        // La otra pestaña pidió tomar el control — nos retiramos
-        _ch.onmessage = null;
-      }
-    };
-    // ══ FIN MODIFICADO ══
+  if (esPWA || esMobile || sessionStorage.getItem('captus-takeover') === '1') {
+    // Móvil, PWA, o pestaña que tomó el control: arrancar directo
+    sessionStorage.removeItem('captus-takeover');
+    // ── Mostrar loading inmediatamente para que no parezca congelado ──
+    const _ls = document.getElementById('loading-screen');
+    if (_ls) _ls.style.display = 'flex';
+    arrancarApp();
+  } else {
+    // PC: lógica de takeover estilo WhatsApp Web
+    try {
+      const _ch = new BroadcastChannel('captus-tab');
+      let bloqueado = false;
 
-    _ch.addEventListener('message', _listener);
-    _ch.postMessage('hay-alguien');
+      // SVG del logo reutilizable
+      const _logoSVG = `<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="72" height="72" version="1.1" style="shape-rendering:geometricPrecision;border-radius:18px;box-shadow:0 4px 20px rgba(0,0,0,.12);flex-shrink:0;" viewBox="0 0 20000 20000"><defs><style>.la{fill:#00001F}.lb{fill:url(#lg);fill-rule:nonzero}</style><linearGradient id="lg" gradientUnits="userSpaceOnUse" x1="9859.67" y1="15231.8" x2="9844.03" y2="4768.18"><stop offset="0" style="stop-opacity:1;stop-color:#FFBC14"/><stop offset="1" style="stop-opacity:1;stop-color:#FFD15C"/></linearGradient></defs><g><rect class="la" width="20000" height="20000" rx="5000" ry="5000"/><path class="lb" d="M12081 7396c266,203 469,281 703,281 548,0 861,-406 861,-891 0,-235 -78,-454 -423,-782 -547,-501 -1736,-1236 -3378,-1236 -2909,0 -5083,2237 -5083,5240 0,2972 2127,5224 5099,5224 2033,0 3237,-1064 3581,-1423 219,-235 344,-470 344,-798 0,-532 -359,-829 -875,-829 -313,0 -485,125 -720,360 -266,250 -907,922 -2315,922 -2064,0 -3206,-1454 -3206,-3456 0,-2033 1189,-3472 3175,-3472 1079,0 1658,406 2237,860zm-2054 991c730,0 1346,484 1545,1149l2622 0c216,-1087 1175,-1906 2325,-1906 1309,0 2371,1061 2371,2370 0,1309 -1062,2370 -2371,2370 -1150,0 -2109,-819 -2325,-1906l-2622 0c-199,665 -815,1149 -1545,1149 -890,0 -1613,-722 -1613,-1613 0,-891 723,-1613 1613,-1613z"/></g></svg>`;
 
-    setTimeout(() => {
-      _ch.removeEventListener('message', _listener);
-      if (bloqueado) return;
-      // Nadie respondió → somos la pestaña primaria
-      if (!saltarBloqueo) {
+      const _listener = (e) => {
+        // ── Esta pestaña recibió "ya-activa": mostrar pantalla de takeover ──
+        if (e.data === 'ya-activa' && !bloqueado) {
+          bloqueado = true;
+          document.body.innerHTML = `
+            <div style="position:fixed;inset:0;background:#F4F3EE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;font-family:'Plus Jakarta Sans',sans-serif;">
+              <!-- Panel central -->
+              <div style="background:white;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.10);padding:36px 32px;max-width:360px;width:90%;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;">
+                ${_logoSVG}
+                <div style="font-weight:800;font-size:1.15rem;color:#18181B;margin-top:4px;">Captus está abierto en otra ventana</div>
+                <div style="font-size:.88rem;color:#71717A;line-height:1.6;">Hacé clic en <strong style="color:#18181B;">Usar aquí</strong> para abrir Captus en esta ventana.</div>
+                <div style="display:flex;gap:10px;margin-top:8px;width:100%;">
+                  <button id="_captus_cerrar" style="flex:1;padding:12px 0;background:transparent;color:#71717A;border:1.5px solid #E4E4E7;border-radius:100px;font-weight:700;font-size:.9rem;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;">Cerrar</button>
+                  <button id="_captus_usar" style="flex:2;padding:12px 0;background:#18181B;color:white;border:none;border-radius:100px;font-weight:700;font-size:.9rem;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.15);">Usar aquí</button>
+                </div>
+              </div>
+            </div>`;
+
+          // Botón "Cerrar": cierra esta pestaña
+          document.getElementById('_captus_cerrar').addEventListener('click', function() {
+            window.close();
+            // Si window.close() no funciona (Chrome bloquea), mostrar aviso
+            setTimeout(() => {
+              document.getElementById('_captus_cerrar').textContent = 'Cerrá esta pestaña manualmente';
+              document.getElementById('_captus_cerrar').style.fontSize = '.75rem';
+            }, 400);
+          });
+
+          // Botón "Usar aquí": marcar permiso en sessionStorage y recargar
+          document.getElementById('_captus_usar').addEventListener('click', function() {
+            this.disabled = true;
+            sessionStorage.setItem('captus-takeover', '1');
+            _ch.postMessage('ceder');
+            _ch.close();
+            window.location.reload();
+          });
+        }
+
+        // ── Esta pestaña es primaria: responder que ya está activa ──
+        if (e.data === 'hay-alguien') {
+          _ch.postMessage('ya-activa');
+        }
+      };
+
+      _ch.addEventListener('message', _listener);
+      _ch.postMessage('hay-alguien');
+
+      setTimeout(() => {
+        _ch.removeEventListener('message', _listener);
+        if (bloqueado) return;
+        // Nadie respondió → somos la pestaña primaria
         _ch.onmessage = (e) => {
           if (e.data === 'hay-alguien') _ch.postMessage('ya-activa');
-          if (e.data === 'ceder') _ch.close();
+          if (e.data === 'ceder') {
+            // La nueva pestaña tomó el control — mostrar aviso y quedarse quieta
+            _ch.close();
+            document.body.innerHTML = `
+              <div style="position:fixed;inset:0;background:#F4F3EE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-family:'Plus Jakarta Sans',sans-serif;text-align:center;padding:24px;">
+                <div style="font-size:2rem;">👋</div>
+                <div style="font-weight:800;font-size:1rem;color:#18181B;">Captus se abrió en otra ventana</div>
+                <div style="font-size:.85rem;color:#71717A;">Podés cerrar esta pestaña.</div>
+              </div>`;
+          }
         };
-      }
-      arrancarApp();
-    }, 300);
+        arrancarApp();
+      }, 300);
 
-  } catch(e) {
-    // BroadcastChannel no disponible → arrancar igual
-    arrancarApp();
+    } catch(e) {
+      arrancarApp();
+    }
   }
 
   function arrancarApp() {
@@ -8356,6 +8408,30 @@ if (_origNavTo) {
     showLoginScreen(false);
 
     let cargando = false; // true mientras initApp() está ejecutándose
+
+    // ── OPTIMIZACIÓN: intentar arranque directo sin esperar onAuthStateChange ──
+    (async () => {
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session && !cargando) {
+          cargando = true;
+          showLoginScreen(false);
+          showApp(true);
+          const ls = document.getElementById('loading-screen');
+          if (ls) ls.style.display = 'flex';
+          try {
+            await initApp();
+          } catch(e) {
+            console.error('initApp falló (arranque directo):', e);
+          } finally {
+            cargando = false;
+          }
+        }
+      } catch(e) {
+        // getSession falló, dejar que onAuthStateChange lo maneje
+      }
+    })();
+    // ── FIN OPTIMIZACIÓN ──
 
   function ocultarLoading() {
     const ls = document.getElementById('loading-screen');
@@ -8414,7 +8490,7 @@ if (_origNavTo) {
     }
   });
 
-  // Guard: si a los 15s sigue cargando, mostrar botón reintentar
+  // Guard: si a los 5s sigue cargando, mostrar botón reintentar
   setTimeout(() => {
     const ls = document.getElementById('loading-screen');
     const btnReintentar = document.getElementById('loading-reintentar');
@@ -8427,7 +8503,7 @@ if (_origNavTo) {
       const appVisible   = document.querySelector('.app')?.style.display !== 'none';
       if (!loginVisible && !appVisible) irAlLogin();
     }
-  }, 15000);
+  }, 5000);
 
   // Al volver al frente: solo ocultar loading, nunca recargar datos
   document.addEventListener('visibilitychange', () => {
