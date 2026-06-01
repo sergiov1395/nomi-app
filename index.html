@@ -1385,6 +1385,15 @@ html.dark button[onclick="exportReportePDF()"] {
     <div style="height:100%;background:var(--green);border-radius:100px;animation:loadBar 1.4s ease-in-out infinite;"></div>
   </div>
   <style>@keyframes loadBar{0%{width:0%;margin-left:0}50%{width:70%;margin-left:15%}100%{width:0%;margin-left:100%}}</style>
+  <!-- ══ AGREGADO: botón reintentar, oculto hasta que se muestre por timeout ══ -->
+  <button id="loading-reintentar" onclick="window.location.reload();" style="
+    display:none;margin-top:8px;padding:12px 32px;
+    background:var(--ink);color:white;
+    border:none;border-radius:100px;
+    font-weight:700;font-size:.95rem;
+    font-family:var(--font);cursor:pointer;">
+    Reintentar
+  </button>
 </div>
 
 <aside class="sidebar">

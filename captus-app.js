@@ -8414,12 +8414,19 @@ if (_origNavTo) {
     }
   });
 
-  // Guard: si a los 15s todo sigue oculto, ir al login
+  // Guard: si a los 15s sigue cargando, mostrar botón reintentar
   setTimeout(() => {
-    if (cargando) return;
-    const loginVisible = document.getElementById('login-screen')?.style.display !== 'none';
-    const appVisible   = document.querySelector('.app')?.style.display !== 'none';
-    if (!loginVisible && !appVisible) irAlLogin();
+    const ls = document.getElementById('loading-screen');
+    const btnReintentar = document.getElementById('loading-reintentar');
+    if (ls && ls.style.display !== 'none' && btnReintentar) {
+      btnReintentar.style.display = 'block';
+    }
+    // Si todo sigue oculto (no cargó ni llegó al login), ir al login
+    if (!cargando) {
+      const loginVisible = document.getElementById('login-screen')?.style.display !== 'none';
+      const appVisible   = document.querySelector('.app')?.style.display !== 'none';
+      if (!loginVisible && !appVisible) irAlLogin();
+    }
   }, 15000);
 
   // Al volver al frente: solo ocultar loading, nunca recargar datos
