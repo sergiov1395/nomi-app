@@ -4095,7 +4095,8 @@ async function renderReportes(){
   }
 
   // Obtener el rango activo
-  const { ventas, gastos, ing, gst } = getDatosReporte();
+  // ── MODIFICADO: incluir pagosCC en el destructuring ──
+  const { ventas, gastos, ing, gst, pagosCC } = getDatosReporte();
 
   // ══════════════════════════════════════════════════════════
   // FASE 5: KPIs normalizados a moneda principal
@@ -4751,51 +4752,55 @@ async function editarConversion(id){
 // ══════════════════════════════════════════════════════════
 
 // ── AGREGADO: dibuja los 3 gráficos con Chart.js ──
-// ── CORREGIDO Bug 3 y 4: recibe pagosCC para incluirlos en los gráficos ──
+// ── MODIFICADO: quitada condición offsetParent que bloqueaba el render;
+//    timeout aumentado a 120ms para garantizar visibilidad del DOM ──
 async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
   await ensureChartJs();
 
-  // Paleta de colores usando CSS vars del sistema
+  // Esperar a que el navegador termine de pintar la pantalla activa
+  await new Promise(r => setTimeout(r, 120));
+
   const COLORS = ['#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316'];
-  const isDark  = document.documentElement.classList.contains('dark');
+  const isDark     = document.documentElement.classList.contains('dark');
   const gridColor  = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
   const labelColor = isDark ? '#94a3b8' : '#64748b';
 
-  // ── Helpers para destruir charts anteriores ──
-  if(_chartDia)      { _chartDia.destroy();      _chartDia      = null; }
-  if(_chartMetodos)  { _chartMetodos.destroy();  _chartMetodos  = null; }
-  if(_chartTopProd)  { _chartTopProd.destroy();  _chartTopProd  = null; }
+  // ── Destruir charts anteriores para evitar duplicados ──
+  if(_chartDia)     { _chartDia.destroy();     _chartDia     = null; }
+  if(_chartMetodos) { _chartMetodos.destroy(); _chartMetodos = null; }
+  if(_chartTopProd) { _chartTopProd.destroy(); _chartTopProd = null; }
 
-  // ════════════════════════════════════════════════
+  // ════════════════════════════════════════════
   // GRÁFICO 1 — Barras: Ingresos por día
-  // Agrupa ventas + pagos CC por fecha y suma totales
-  // ════════════════════════════════════════════════
-  // ── CORREGIDO Bug 3: incluir pagos CC en el gráfico de ingresos por día ──
+  // ════════════════════════════════════════════
   const ventasPorFecha = {};
   ventas.forEach(v => {
-    const d = new Date(v.date);
+    const d  = new Date(v.date);
     const ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    if(!ventasPorFecha[ts]) ventasPorFecha[ts] = { label: d.toLocaleDateString('es-PY',{weekday:'short',day:'numeric'}), total: 0 };
+    if(!ventasPorFecha[ts]) ventasPorFecha[ts] = {
+      label: d.toLocaleDateString('es-PY', {weekday:'short', day:'numeric'}), total: 0
+    };
     ventasPorFecha[ts].total += v.total;
   });
   pagosCC.forEach(p => {
-    const d = new Date(p.fecha || p.date);
+    const d  = new Date(p.fecha || p.date);
     const ts = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    if(!ventasPorFecha[ts]) ventasPorFecha[ts] = { label: d.toLocaleDateString('es-PY',{weekday:'short',day:'numeric'}), total: 0 };
+    if(!ventasPorFecha[ts]) ventasPorFecha[ts] = {
+      label: d.toLocaleDateString('es-PY', {weekday:'short', day:'numeric'}), total: 0
+    };
     ventasPorFecha[ts].total += (p.monto || 0);
   });
   const diasOrdenados = Object.keys(ventasPorFecha).sort((a,b)=>+a-+b).map(k=>ventasPorFecha[k]);
-  // ── FIN CORREGIDO Bug 3 ──
 
   const ctxDia = document.getElementById('chart-ventas-dia');
   if(ctxDia){
     _chartDia = new Chart(ctxDia, {
       type: 'bar',
       data: {
-        labels: diasOrdenados.length ? diasOrdenados.map(d => d.label) : ['Sin ventas'],
+        labels:   diasOrdenados.length ? diasOrdenados.map(d => d.label) : ['Sin ventas'],
         datasets: [{
-          label: 'Ingresos (Gs)',
-          data:   diasOrdenados.length ? diasOrdenados.map(d => d.total) : [0],
+          label: 'Ingresos',
+          data:  diasOrdenados.length ? diasOrdenados.map(d => d.total) : [0],
           backgroundColor: '#3b82f6cc',
           borderColor:     '#3b82f6',
           borderWidth: 1.5,
@@ -4806,11 +4811,7 @@ async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ' ' + fmtGs(ctx.parsed.y)
-            }
-          }
+          tooltip: { callbacks: { label: ctx => ' ' + fmtGs(ctx.parsed.y) } }
         },
         scales: {
           x: { grid: { color: gridColor }, ticks: { color: labelColor, font:{ size:11 } } },
@@ -4830,11 +4831,9 @@ async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
     });
   }
 
-  // ════════════════════════════════════════════════
+  // ════════════════════════════════════════════
   // GRÁFICO 2 — Dona: Métodos de pago
-  // Cuenta cuántas ventas hubo por cada método
-  // ════════════════════════════════════════════════
-  // ── CORREGIDO Bug 4: incluir métodos de pago de fiados en el donut ──
+  // ════════════════════════════════════════════
   const metodosMap = {};
   ventas.forEach(v => {
     const m = v.metodoPago || v.metodo_pago || 'Efectivo';
@@ -4844,7 +4843,6 @@ async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
     const m = p.metodo_pago || 'Efectivo';
     metodosMap[m] = (metodosMap[m] || 0) + (p.monto || 0);
   });
-  // ── FIN CORREGIDO Bug 4 ──
   const metodosLabels = Object.keys(metodosMap);
   const metodosData   = metodosLabels.map(k => metodosMap[k]);
 
@@ -4853,7 +4851,7 @@ async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
     _chartMetodos = new Chart(ctxMet, {
       type: 'doughnut',
       data: {
-        labels: metodosLabels.length ? metodosLabels : ['Sin ventas'],
+        labels:   metodosLabels.length ? metodosLabels : ['Sin ventas'],
         datasets: [{
           data:            metodosLabels.length ? metodosData : [1],
           backgroundColor: COLORS.slice(0, Math.max(metodosLabels.length, 1)),
@@ -4870,31 +4868,32 @@ async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
             labels: { color: labelColor, font:{ size:11 }, padding: 10, boxWidth: 12 }
           },
           tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.label}: ${fmtGs(ctx.parsed)}`
-            }
+            callbacks: { label: ctx => ` ${ctx.label}: ${fmtGs(ctx.parsed)}` }
           }
         }
       }
     });
   }
 
-  // ════════════════════════════════════════════════
+  // ════════════════════════════════════════════
   // GRÁFICO 3 — Barras horizontales: Top 5 productos
-  // Usa los mismos datos que la lista de texto
-  // ════════════════════════════════════════════════
+  // ════════════════════════════════════════════
   const ctxTop = document.getElementById('chart-top-prod');
   if(ctxTop){
-    const topLabels = topProductos.length ? topProductos.map(([n]) => n.length > 18 ? n.slice(0,16)+'…' : n) : ['Sin ventas'];
-    const topVals   = topProductos.length ? topProductos.map(([,q]) => q)                                     : [0];
+    const topLabels = topProductos.length
+      ? topProductos.map(([n]) => n.length > 18 ? n.slice(0,16)+'…' : n)
+      : ['Sin ventas'];
+    const topVals = topProductos.length
+      ? topProductos.map(([,q]) => q)
+      : [0];
 
     _chartTopProd = new Chart(ctxTop, {
       type: 'bar',
       data: {
-        labels: topLabels,
+        labels:   topLabels,
         datasets: [{
           label: 'Unidades vendidas',
-          data:   topVals,
+          data:  topVals,
           backgroundColor: COLORS.slice(0, topLabels.length).map(c => c + 'cc'),
           borderColor:     COLORS.slice(0, topLabels.length),
           borderWidth: 1.5,
@@ -4902,13 +4901,11 @@ async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
         }]
       },
       options: {
-        indexAxis: 'y',   // ← hace las barras horizontales
+        indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: {
-            callbacks: { label: ctx => ` ${ctx.parsed.x} unidades` }
-          }
+          tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} unidades` } }
         },
         scales: {
           x: { grid: { color: gridColor }, ticks: { color: labelColor, font:{ size:11 } } },
@@ -4922,7 +4919,7 @@ async function renderGraficosReportes(ventas, topProductos, pagosCC = []){
 // FIN REPORTES CON GRÁFICOS
 // ══════════════════════════════════════════════════════════
 
-// ══════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════
 // ▼▼▼ PRESUPUESTADOR v2 — MÓDULO COMPLETO ▼▼▼
 // REEMPLAZADO: nueva lógica con materiales, taller, historial y Supabase
 // ══════════════════════════════════════════════════════════
@@ -4968,6 +4965,8 @@ const CALC_PRESETS = {
 // ── Carga el estado guardado en localStorage ──
 // MODIFICADO: merge profundo para no perder claves nuevas (ej: toner con 4 cartuchos)
 // ── Carga desde localStorage como caché rápida (mientras llega Supabase) ──
+// ── CORREGIDO: después de cargar materiales y acabados, sincroniza los contadores
+// de IDs para que los nuevos nunca colisionen con los existentes ──
 function calcLoadState() {
   try {
     const saved = localStorage.getItem('captus_calc_v2');
@@ -4980,6 +4979,15 @@ function calcLoadState() {
       ['negro','cyan','magenta','amarillo'].forEach(k => {
         if (parsed.toner[k]) Object.assign(calcState.toner[k], parsed.toner[k]);
       });
+    }
+    // ── NUEVO: recalcular contadores al máximo ID existente ──
+    if (calcState.materiales.length) {
+      const maxMatId = Math.max(...calcState.materiales.map(m => m.id));
+      if (maxMatId >= calcMatIdCounter) calcMatIdCounter = maxMatId + 1;
+    }
+    if (calcState.acabados.length) {
+      const maxAcabId = Math.max(...calcState.acabados.map(a => a.id));
+      if (maxAcabId >= calcAcabadoIdCounter) calcAcabadoIdCounter = maxAcabId + 1;
     }
   } catch(e) {}
 }
@@ -5031,15 +5039,27 @@ async function calcLoadSupabase() {
     }
     // Actualizar caché local con los datos frescos de Supabase
     calcSaveState();
+    // ── NUEVO: recalcular contadores al máximo ID existente ──
+    if (calcState.materiales.length) {
+      const maxMatId = Math.max(...calcState.materiales.map(m => m.id));
+      if (maxMatId >= calcMatIdCounter) calcMatIdCounter = maxMatId + 1;
+    }
+    if (calcState.acabados.length) {
+      const maxAcabId = Math.max(...calcState.acabados.map(a => a.id));
+      if (maxAcabId >= calcAcabadoIdCounter) calcAcabadoIdCounter = maxAcabId + 1;
+    }
     return true;
   } catch(e) { return false; }
 }
 
-// ── Inicializa el módulo al entrar a la pantalla ──
-// MODIFICADO: carga desde localStorage primero (rápido), luego sincroniza con Supabase
+// ── CORREGIDO v3: dos flags para evitar doble carga y race conditions ──
+// _calcModuleInited: ya se cargó desde Supabase al menos una vez
+// _calcModuleLoading: hay una carga de Supabase en curso, no lanzar otra
+let _calcModuleInited  = false;
+let _calcModuleLoading = false;
+
 async function initCalcModule() {
-  // 1. Mostrar datos del localStorage inmediatamente (sin esperar red)
-  calcLoadState();
+  // SIEMPRE re-renderizar la UI al volver a la pantalla
   switchCalcPanel('calcular', document.querySelector('.calc-nav-btn'));
   calcPopulateMaterialSelect();
   calcLoadTallerFields();
@@ -5049,7 +5069,20 @@ async function initCalcModule() {
   calcRenderChipsAcabados();
   calcRecalcCostoHora();
 
-  // 2. Sincronizar con Supabase en segundo plano y refrescar si hay datos nuevos
+  // ── MODIFICADO: llaves explícitas para evitar error de linter TS1128 ──
+  if (_calcModuleInited || _calcModuleLoading) { return; }
+
+  // Primera carga: sincronizar con localStorage + Supabase
+  _calcModuleLoading = true;
+  calcLoadState();
+  calcPopulateMaterialSelect();
+  calcLoadTallerFields();
+  calcRenderMateriales();
+  calcRenderTonerLista();
+  calcRenderAcabadosLista();
+  calcRenderChipsAcabados();
+  calcRecalcCostoHora();
+
   const actualizado = await calcLoadSupabase();
   if (actualizado) {
     calcPopulateMaterialSelect();
@@ -5060,6 +5093,8 @@ async function initCalcModule() {
     calcRenderChipsAcabados();
     calcRecalcCostoHora();
   }
+  _calcModuleInited  = true;
+  _calcModuleLoading = false;
 }
 
 // ── Cambia entre pestañas internas del presupuestador ──
@@ -5591,6 +5626,8 @@ function calcLimpiarHistorial() {
 // ── Panel Materiales ──────────────────────────────────────────────
 
 // Papeles
+// ── CORREGIDO: oninput en lugar de onchange para que el estado se actualice
+// en tiempo real sin esperar blur, evitando pérdida de datos al agregar filas ──
 function calcRenderMateriales() {
   const lista = document.getElementById('calc-materiales-lista');
   if (!lista) return;
@@ -5601,15 +5638,15 @@ function calcRenderMateriales() {
     row.innerHTML = `
       <div class="field" style="margin:0;">
         <label>Nombre</label>
-        <input type="text" value="${m.nombre}" onchange="calcUpdateMat(${m.id},'nombre',this.value)">
+        <input type="text" value="${m.nombre}" oninput="calcUpdateMat(${m.id},'nombre',this.value)">
       </div>
       <div class="field" style="margin:0;">
         <label>Precio (Gs)</label>
-        <input type="number" value="${m.precio}" min="0" onchange="calcUpdateMat(${m.id},'precio',+this.value)">
+        <input type="number" value="${m.precio}" min="0" oninput="calcUpdateMat(${m.id},'precio',+this.value)">
       </div>
       <div class="field" style="margin:0;">
         <label>Unidades por compra</label>
-        <input type="number" value="${m.unidades}" min="1" onchange="calcUpdateMat(${m.id},'unidades',+this.value)">
+        <input type="number" value="${m.unidades}" min="1" oninput="calcUpdateMat(${m.id},'unidades',+this.value)">
       </div>
       <div class="field" style="margin:0;">
         <label>&nbsp;</label>
@@ -5624,7 +5661,12 @@ function calcUpdateMat(id, key, val) {
   if (m) m[key] = val;
 }
 function calcAgregarMaterial() {
-  calcState.materiales.push({ id: ++calcMatIdCounter, nombre: 'Nuevo material', precio: 0, unidades: 1 });
+  // Siempre calcular el ID máximo real del array actual, nunca confiar en el contador
+  const maxId = calcState.materiales.length
+    ? Math.max(...calcState.materiales.map(m => m.id))
+    : 0;
+  calcMatIdCounter = maxId + 1;
+  calcState.materiales.push({ id: calcMatIdCounter, nombre: 'Nuevo material', precio: 0, unidades: 1 });
   calcRenderMateriales();
 }
 function calcEliminarMat(id) {
@@ -5740,7 +5782,11 @@ function calcUpdateAcabado(id, key, val) {
 }
 
 function calcAgregarAcabado() {
-  calcState.acabados.push({ id: ++calcAcabadoIdCounter, nombre: 'Nuevo acabado', costo: 0 });
+  const maxId = calcState.acabados.length
+    ? Math.max(...calcState.acabados.map(a => a.id))
+    : 0;
+  calcAcabadoIdCounter = maxId + 1;
+  calcState.acabados.push({ id: calcAcabadoIdCounter, nombre: 'Nuevo acabado', costo: 0 });
   calcRenderAcabadosLista();
   calcRenderChipsAcabados();
 }
