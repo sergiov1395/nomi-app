@@ -1407,18 +1407,24 @@ html.dark button[onclick="exportReportePDF()"] {
 <!-- FIN TOUR DE BIENVENIDA                               -->
 <!-- ══════════════════════════════════════════════════════ -->
 
+<!-- ══ MODIFICADO: loading-screen con log visual de diagnóstico ══ -->
 <div id="loading-screen" style="
   display:none;position:fixed;inset:0;z-index:9999;
   background:var(--bg);flex-direction:column;
-  align-items:center;justify-content:center;gap:16px;">
+  align-items:center;justify-content:center;gap:16px;padding:24px;">
   <div style="font-size:2.5rem;">&#x26A1;</div>
   <div style="font-weight:800;font-size:1.1rem;letter-spacing:-.02em;">Cargando tu negocio…</div>
   <div style="width:180px;height:4px;background:var(--border);border-radius:100px;overflow:hidden;">
     <div style="height:100%;background:var(--green);border-radius:100px;animation:loadBar 1.4s ease-in-out infinite;"></div>
   </div>
   <style>@keyframes loadBar{0%{width:0%;margin-left:0}50%{width:70%;margin-left:15%}100%{width:0%;margin-left:100%}}</style>
-  <!-- ══ AGREGADO: botón reintentar, oculto hasta que se muestre por timeout ══ -->
-  <button id="loading-reintentar" onclick="window.location.reload();" style="
+  <!-- LOG VISUAL: muestra pasos de initApp en pantalla para diagnóstico móvil -->
+  <div id="loading-log" style="
+    width:100%;max-width:420px;max-height:220px;overflow-y:auto;
+    background:#18181B;color:#a3e635;font-family:monospace;font-size:.72rem;
+    border-radius:10px;padding:10px 12px;line-height:1.8;
+    display:none;"></div>
+  <button id="loading-reintentar" onclick="(function(){ Object.keys(localStorage).filter(k=>k.startsWith('captus_nid_')).forEach(k=>localStorage.removeItem(k)); if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(r=>r.forEach(s=>s.unregister())).then(()=>location.reload()); } else { location.reload(); } })()" style="
     display:none;margin-top:8px;padding:12px 32px;
     background:var(--ink);color:white;
     border:none;border-radius:100px;
@@ -1427,6 +1433,7 @@ html.dark button[onclick="exportReportePDF()"] {
     Reintentar
   </button>
 </div>
+<!-- ══ FIN MODIFICADO ══ -->
 
 <aside class="sidebar">
   <div class="sidebar-logo">

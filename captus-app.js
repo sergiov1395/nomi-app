@@ -504,9 +504,21 @@ let planActual = { plan_id: 'gratis', features: [], bloqueado: false, motivo: nu
 
 // Esta función reemplaza los datos hardcodeados.
 // Muestra un spinner, carga todo en paralelo, luego renderiza.
+// ── AGREGADO: log visual para diagnóstico en móvil ──
+function _log(msg) {
+  const el = document.getElementById('loading-log');
+  if (!el) return;
+  el.style.display = 'block';
+  el.innerHTML += `<div>▸ ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+  console.log('[Captus]', msg);
+}
+// ── FIN AGREGADO ──
+
 async function initApp(){
   // Mostrar pantalla de carga
   document.getElementById('loading-screen').style.display='flex';
+  _log('initApp iniciado');
   
 
   try {
@@ -521,7 +533,9 @@ async function initApp(){
     const _cached = localStorage.getItem(_cacheKey);
     if (_cached) {
       negocioId = _cached;
+      _log('negocioId desde caché: ' + negocioId);
     } else {
+      _log('consultando usuarios_negocios…');
       const { data: unData, error: unError } = await sb
         .from('usuarios_negocios')
         .select('negocio_id')
@@ -531,11 +545,13 @@ async function initApp(){
       if (!unData) throw new Error('Este usuario no tiene negocio asignado');
       negocioId = unData.negocio_id;
       localStorage.setItem(_cacheKey, negocioId);
+      _log('negocioId obtenido: ' + negocioId);
     }
     // ── FIN OPTIMIZACIÓN ──
     
 
     // ── MODIFICADO SEGURIDAD: cargar plan desde función backend (no confiar en frontend) ──
+    _log('consultando get_plan_activo…');
     const { data: planData, error: planError } = await sb
       .rpc('get_plan_activo', { p_negocio_id: negocioId });
 
@@ -600,6 +616,7 @@ const [
       sb.from('pagos_cc').select('*').eq('negocio_id', negocioId).order('fecha', {ascending: false})
     ]);
 
+    _log('Promise.all completado ✓');
     // ── OPTIMIZACIÓN: pagosCC viene del Promise.all, solo procesamos el resultado ──
     let pagosCC = [];
     if (pCCError) {
@@ -689,6 +706,7 @@ const [
     }
 
   } catch(err) {
+    _log('ERROR: ' + (err?.message || String(err)));
     console.error('Error cargando datos:', err);
     // ── MODIFICADO: mostrar el loading (puede estar oculto) y luego el error ──
     const lsErr = document.getElementById('loading-screen');
