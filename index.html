@@ -4477,17 +4477,44 @@ function xeroxCalcTime() {
 </div>
 <!-- ══ FIN AGREGADO ══ -->
 
-<!-- ══ AGREGADO: registro del Service Worker (PWA) ══ -->
+<!-- ══ MODIFICADO SW v1.2: activación inmediata cuando hay nueva versión ══ -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('[Captus SW] registrado:', reg.scope))
-      .catch(err => console.warn('[Captus SW] error al registrar:', err));
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      console.log('[Captus SW] registrado:', reg.scope);
+
+      // Si hay un SW esperando (nueva versión disponible), activarlo YA
+      if (reg.waiting) {
+        reg.waiting.postMessage('skipWaiting');
+      }
+
+      // Si llega una nueva versión mientras la app está abierta, activarla también
+      reg.addEventListener('updatefound', () => {
+        const nuevo = reg.installing;
+        if (!nuevo) return;
+        nuevo.addEventListener('statechange', () => {
+          if (nuevo.state === 'installed' && navigator.serviceWorker.controller) {
+            // Hay versión nueva lista → activar y recargar una sola vez
+            nuevo.postMessage('skipWaiting');
+          }
+        });
+      });
+
+    }).catch(err => console.warn('[Captus SW] error al registrar:', err));
+
+    // Cuando el SW tome el control, recargar la página UNA sola vez
+    let recargado = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!recargado) {
+        recargado = true;
+        window.location.reload();
+      }
+    });
   });
 }
 </script>
-<!-- ══ FIN AGREGADO SW ══ -->
+<!-- ══ FIN MODIFICADO SW ══ -->
 
 <!-- ══ AGREGADO: detección online/offline con toast de conexión restaurada ══ -->
 <script>

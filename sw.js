@@ -5,7 +5,8 @@
    Offline: sirve offline.html cuando no hay red.
    ══════════════════════════════════════════════════ */
 
-const CACHE_NAME = 'captus-shell-v1.1';
+// ── MODIFICADO v1.2: bump de versión para forzar caché fresco en todos los clientes ──
+const CACHE_NAME = 'captus-shell-v1.2';
 
 // Archivos del shell que se cachean al instalar
 const SHELL_FILES = [
