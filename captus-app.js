@@ -6,14 +6,12 @@ const SUPA_URL = 'https://ykglfcjxbgrutpyrjrzv.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZ2xmY2p4YmdydXRweXJqcnp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTk1ODAsImV4cCI6MjA5NDMzNTU4MH0.lZP5ZecJifxWYX9eDK08i2vEgJ8gnmXEyAFgoD4xTKI';
 
 // ── Cliente único — nunca se recrea, nunca se duplica ──
+// ── MODIFICADO: eliminado lock personalizado que causaba deadlock en móvil/PWA ──
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    // ── OPTIMIZACIÓN: deshabilitar Navigator Lock para evitar bloqueos entre pestañas ──
-    // El BroadcastChannel ya controla que solo haya una instancia activa en PC
-    lock: async (name, acquireTimeout, fn) => fn(),
   }
 });
 
